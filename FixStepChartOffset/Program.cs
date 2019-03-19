@@ -8,6 +8,9 @@ namespace FixStepChartOffset
 {
     class Program
     {
+        static Regex regexOffset = new Regex("#OFFSET:(.*);");
+        static Regex regexTitle = new Regex("#TITLE:(.*);");
+
         static void Main(string[] args)
         {
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
@@ -20,7 +23,7 @@ namespace FixStepChartOffset
                 Console.WriteLine("Press esc to exit or any other key to continue");
                 key = Console.ReadKey();
             }
-            System.Environment.Exit(1);
+            Environment.Exit(1);
         }
 
         static void StartFix()
@@ -33,13 +36,13 @@ namespace FixStepChartOffset
                 Console.WriteLine("Insert absolute path of the pack:");
                 path = Console.ReadLine();
             }
-            var files = Directory.GetFiles(path, "*.sm", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(path.Trim('"'),"*.sm", SearchOption.AllDirectories);
             while (files.Length == 0)
             {
                 Console.WriteLine("Error, no file found");
                 Console.WriteLine("Insert absolute path of the pack:");
                 path = Console.ReadLine();
-                files = Directory.GetFiles(path, "*.sm", SearchOption.AllDirectories);
+                files = Directory.GetFiles(path.Trim('"'), "*.sm", SearchOption.AllDirectories);
             }
             for (var i = 0; i < files.Length; i++)
             {
@@ -61,29 +64,38 @@ namespace FixStepChartOffset
                     millisec = Console.ReadLine();
                 }
             }
+            var failed = 0;
             for (var i = 0; i < files.Length; i++)
             {
-                Console.WriteLine(Modify(files[i], millisecValue));
+                var res = Modify(files[i], millisecValue);
+                if (!res.Item2)
+                {
+                    failed++;
+                }
+                Console.WriteLine(res.Item1);
             }
-            Console.WriteLine("OPERATION DONE!");
+            if(failed > 0)
+            {
+            Console.WriteLine($"OPERATION DONE!! {failed} failed fix, check text above to see some details");
+            }
+            else
+            {
+                Console.WriteLine($"OPERATION DONE!!");
+            }
         }
 
         static string ReadSm(string path)
         {
             var text = File.ReadAllText(path);
-            Regex regexTitle = new Regex("#TITLE:(.*);");
-            Regex regexOffset = new Regex("#OFFSET:(.*);");
 
             var title = regexTitle.Match(text).Value;
             var offset = regexOffset.Match(text).Value;
             return title.Replace("#TITLE:", "").Trim(';') + "---- actual offset: " + offset.Replace("#OFFSET:", "").Trim(';');
         }
 
-        static string Modify(string path, int millisec)
+        static (string,bool) Modify(string path, int millisec)
         {
             var text = File.ReadAllText(path);
-            Regex regexOffset = new Regex("#OFFSET:(.*);");
-            Regex regexTitle = new Regex("#TITLE:(.*);");
 
             var offset = regexOffset.Match(text).Value;
             var title = regexTitle.Match(text).Value;
@@ -91,12 +103,12 @@ namespace FixStepChartOffset
             {
                 var modify = res + (decimal)(0.001) * millisec;
                 var modifiedText = text.Replace(offset, $"#OFFSET:{modify};");
-                File.WriteAllText(path,text);
-                return title.Replace("#TITLE:", "").Trim(';') + "---- past offset: " + offset.Replace("#OFFSET:", "").Trim(';') + "-----> " + modify;
+                File.WriteAllText(path, modifiedText);
+                return new ValueTuple<string,bool> (title.Replace("#TITLE:", "").Trim(';') + "---- past offset: " + offset.Replace("#OFFSET:", "").Trim(';') + "-----> " + modify, true );
             }
             else
             {
-                return "ERROR in " + title.Replace("#TITLE:", "").Trim(';');
+                return new ValueTuple<string, bool> ("ERROR in " + title.Replace("#TITLE:", "").Trim(';'),false);
             }
         }
     }
