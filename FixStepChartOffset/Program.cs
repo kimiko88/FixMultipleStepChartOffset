@@ -30,7 +30,7 @@ namespace FixStepChartOffset
         {
             Console.WriteLine(@"Insert absolute path of the pack: (example C:\Users\itg\Desktop\ITGSONGSPACK)");
             var path = Console.ReadLine();
-            while (!Directory.Exists(path))
+            while (!Directory.Exists(path.Trim('"')))
             {
                 Console.WriteLine("Error, no directory found");
                 Console.WriteLine("Insert absolute path of the pack:");
@@ -42,6 +42,12 @@ namespace FixStepChartOffset
                 Console.WriteLine("Error, no file found");
                 Console.WriteLine("Insert absolute path of the pack:");
                 path = Console.ReadLine();
+                while (!Directory.Exists(path.Trim('"')))
+                {
+                    Console.WriteLine("Error, no directory found");
+                    Console.WriteLine("Insert absolute path of the pack:");
+                    path = Console.ReadLine();
+                }
                 files = Directory.GetFiles(path.Trim('"'), "*.sm", SearchOption.AllDirectories);
             }
             for (var i = 0; i < files.Length; i++)
